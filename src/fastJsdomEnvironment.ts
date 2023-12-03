@@ -68,10 +68,14 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
       this.jestJsdomEnv = new JSDOMEnvironment(config, context);
       this.dom = this.jestJsdomEnv.dom;
       this.fakeTimers = this.jestJsdomEnv.fakeTimers;
+      this.fakeTimersModern = this.jestJsdomEnv.fakeTimersModern;
       this.global = this.jestJsdomEnv.global;
       // @ts-ignore
       this.errorEventListener = this.jestJsdomEnv.errorEventListener;
       this.moduleMocker = this.jestJsdomEnv.moduleMocker;
+      // @ts-ignore
+      this._configuredExportConditions = this.jestJsdomEnv._configuredExportConditions;
+      this.customExportConditions = this.jestJsdomEnv.customExportConditions;
       return;
     }
 
@@ -83,7 +87,7 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
 
     // Reuse our test env to make things fast
     if (!cachedDom) {
-      this.dom = new JSDOM(
+      cachedDom = this.dom = new JSDOM(
         typeof projectConfig.testEnvironmentOptions.html === 'string'
           ? projectConfig.testEnvironmentOptions.html
           : '<!DOCTYPE html>',
@@ -116,9 +120,9 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
     // Node's error-message stack size is limited at 10, but it's pretty useful
     // to see more than that when a test fails.
     this.global.Error.stackTraceLimit = 100;
-    // if (!initialized) {
+    if (!initialized) {
       installCommonGlobals(global, projectConfig.globals);
-    // }
+    }
 
     // TODO: remove this ASAP, but it currently causes tests to run really slow
     global.Buffer = Buffer;
@@ -195,6 +199,10 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
   async setup(): Promise<void> {}
 
   async teardown(): Promise<void> {
+    if (this.jestJsdomEnv) {
+      return this.jestJsdomEnv.teardown();
+    }
+
     if (this.fakeTimers) {
       this.fakeTimers.dispose();
     }
@@ -205,11 +213,9 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
       if (this.errorEventListener) {
         this.global.removeEventListener('error', this.errorEventListener);
       }
-      this.global.close();
     }
+
     this.errorEventListener = null;
-    this.global = null;
-    this.dom = null;
     this.fakeTimers = null;
     this.fakeTimersModern = null;
   }
@@ -219,6 +225,9 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
   }
 
   getVmContext(): Context | null {
+    if (this.jestJsdomEnv) {
+      return this.jestJsdomEnv.getVmContext();
+    }
     if (this.dom) {
       return this.dom.getInternalVMContext();
     }
@@ -226,4 +235,4 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
   }
 }
 
-export const TestEnvironment = JSDOMEnvironment;
+export const TestEnvironment = FastJsdomEnvironment;

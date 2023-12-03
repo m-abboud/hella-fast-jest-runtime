@@ -164,7 +164,7 @@ const supportsNodeColonModulePrefixInRequire = (() => {
   }
 })();
 
-export default class Runtime {
+export default class FastJestRuntime {
   private readonly _cacheFS: Map<string, string>;
   private readonly _cacheFSBuffer = new Map<string, Buffer>();
   private readonly _config: Config.ProjectConfig;
@@ -331,7 +331,7 @@ export default class Runtime {
     },
   ): Promise<TestContext> {
     createDirectory(config.cacheDirectory);
-    const instance = await Runtime.createHasteMap(config, {
+    const instance = await FastJestRuntime.createHasteMap(config, {
       console: options.console,
       maxWorkers: options.maxWorkers,
       resetCache: !config.cache,
@@ -344,7 +344,7 @@ export default class Runtime {
       config,
       hasteFS: hasteMap.hasteFS,
       moduleMap: hasteMap.moduleMap,
-      resolver: Runtime.createResolver(config, hasteMap.moduleMap),
+      resolver: FastJestRuntime.createResolver(config, hasteMap.moduleMap),
     };
   }
 
@@ -988,7 +988,7 @@ export default class Runtime {
       throw error;
     }
 
-    if (!this.ignoreFastCache) {
+    if (!this.ignoreFastCache && !modulePath.includes('jest')) {
       moduleCache[modulePath] = localModule;
     }
 
