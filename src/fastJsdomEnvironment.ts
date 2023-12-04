@@ -22,6 +22,7 @@ import {ModuleMocker} from 'jest-mock';
 import {installCommonGlobals} from 'jest-util';
 import fs from 'fs';
 import JSDOMEnvironment from 'jest-environment-jsdom';
+import { RUN_ISOLATION_MATCHES } from './fastJestRuntimeHelpers';
 
 // The `Window` interface does not have an `Error.stackTraceLimit` property, but
 // `JSDOMEnvironment` assumes it is there.
@@ -36,8 +37,8 @@ function isString(value: unknown): value is string {
   return typeof value === 'string';
 }
 
-let cachedDom: any = null;
-let cachedMocker: any = null;
+let nonIsolatedDom: any = null;
+let nonIsolatedMocker: any = null;
 let initialized = false;
 
 export default class FastJsdomEnvironment implements JestEnvironment<number> {
@@ -50,7 +51,7 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
   customExportConditions = ['browser'];
   private _configuredExportConditions?: Array<string>;
   ignoreFastCache = false;
-  jestJsdomEnv: JSDOMEnvironment;
+  isolatedJestJsdomEnv: JSDOMEnvironment;
 
   constructor(config: JestEnvironmentConfig, context: EnvironmentContext) {
     const {projectConfig} = config;
@@ -61,21 +62,19 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
     // I remember thinking it should be possibly but I couldn't get it to work and moved on because this got us close
     // enough. Also it doesn't deal with timers correctly too. Looks like they changed the timer code, so maybe
     // it works now?
-    const runIsolationMatches = ['jest.spyOn(', 'jest.mock(', '@fast-jest-ignore'];
-
-    if (runIsolationMatches.some((str) => read.includes(str))) {
+    if (RUN_ISOLATION_MATCHES.some((str) => read.includes(str))) {
       this.ignoreFastCache = true;
-      this.jestJsdomEnv = new JSDOMEnvironment(config, context);
-      this.dom = this.jestJsdomEnv.dom;
-      this.fakeTimers = this.jestJsdomEnv.fakeTimers;
-      this.fakeTimersModern = this.jestJsdomEnv.fakeTimersModern;
-      this.global = this.jestJsdomEnv.global;
+      this.isolatedJestJsdomEnv = new JSDOMEnvironment(config, context);
+      this.dom = this.isolatedJestJsdomEnv.dom;
+      this.fakeTimers = this.isolatedJestJsdomEnv.fakeTimers;
+      this.fakeTimersModern = this.isolatedJestJsdomEnv.fakeTimersModern;
+      this.global = this.isolatedJestJsdomEnv.global;
       // @ts-ignore
-      this.errorEventListener = this.jestJsdomEnv.errorEventListener;
-      this.moduleMocker = this.jestJsdomEnv.moduleMocker;
+      this.errorEventListener = this.isolatedJestJsdomEnv.errorEventListener;
+      this.moduleMocker = this.isolatedJestJsdomEnv.moduleMocker;
       // @ts-ignore
-      this._configuredExportConditions = this.jestJsdomEnv._configuredExportConditions;
-      this.customExportConditions = this.jestJsdomEnv.customExportConditions;
+      this._configuredExportConditions = this.isolatedJestJsdomEnv._configuredExportConditions;
+      this.customExportConditions = this.isolatedJestJsdomEnv.customExportConditions;
       return;
     }
 
@@ -86,8 +85,8 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
     });
 
     // Reuse our test env to make things fast
-    if (!cachedDom) {
-      cachedDom = this.dom = new JSDOM(
+    if (!nonIsolatedDom) {
+      nonIsolatedDom = this.dom = new JSDOM(
         typeof projectConfig.testEnvironmentOptions.html === 'string'
           ? projectConfig.testEnvironmentOptions.html
           : '<!DOCTYPE html>',
@@ -106,7 +105,7 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
         },
       );
     } else {
-      this.dom = cachedDom;
+      this.dom = nonIsolatedDom;
     }
 
     const global = (this.global = this.dom.window as unknown as Win);
@@ -171,10 +170,10 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
       }
     }
 
-    if (!cachedMocker) {
+    if (!nonIsolatedMocker) {
       this.moduleMocker = new ModuleMocker(global);
     } else {
-      this.moduleMocker = cachedMocker;
+      this.moduleMocker = nonIsolatedMocker;
     }
 
     this.fakeTimers = new LegacyFakeTimers({
@@ -199,8 +198,8 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
   async setup(): Promise<void> {}
 
   async teardown(): Promise<void> {
-    if (this.jestJsdomEnv) {
-      return this.jestJsdomEnv.teardown();
+    if (this.isolatedJestJsdomEnv) {
+      return this.isolatedJestJsdomEnv.teardown();
     }
 
     if (this.fakeTimers) {
@@ -225,8 +224,8 @@ export default class FastJsdomEnvironment implements JestEnvironment<number> {
   }
 
   getVmContext(): Context | null {
-    if (this.jestJsdomEnv) {
-      return this.jestJsdomEnv.getVmContext();
+    if (this.isolatedJestJsdomEnv) {
+      return this.isolatedJestJsdomEnv.getVmContext();
     }
     if (this.dom) {
       return this.dom.getInternalVMContext();

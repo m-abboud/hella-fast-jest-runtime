@@ -104,8 +104,9 @@ type InitialModule = Omit<Module, 'require' | 'parent' | 'paths'>;
 type ModuleRegistry = Map<string, InitialModule | Module>;
 
 // This is for fast-jest, we just side step their existing cache stuff instead of bending it to our will so there's just
-// extra their cache code lying around that's made irrelevant by this
-let moduleCache = {};
+// extra their cache code lying around that's made irrelevant by this. We have to keep a separate list depending on the env type,
+// you can have multiple types of test envs in the same run.
+let envNonIsolatedModules: Record<string, any> = {};
 
 // These are modules that we know
 // * are safe to require from the outside (not stateful, not prone to errors passing in instances from different realms), and
@@ -958,9 +959,11 @@ export default class FastJestRuntime {
 
     // For fast jest runtime as long as mocks arn't used. Exclude jest ones because they added
     // some stuff to circus top level state that messes with our hack here.
-    if (!this.ignoreFastCache && moduleCache[modulePath] && !modulePath.includes('jest')) {
-      moduleRegistry.set(modulePath, moduleCache[modulePath]);
-      return moduleCache[modulePath].exports;
+
+    const envName = this._environment.constructor.name
+    if (!this.ignoreFastCache && envNonIsolatedModules[envName]?.[modulePath] && !modulePath.includes('jest')) {
+      moduleRegistry.set(envNonIsolatedModules[envName]?.[modulePath]);
+      return envNonIsolatedModules[envName]?.[modulePath]?.exports;
     }
 
     // @ts-ignore
@@ -989,7 +992,11 @@ export default class FastJestRuntime {
     }
 
     if (!this.ignoreFastCache && !modulePath.includes('jest')) {
-      moduleCache[modulePath] = localModule;
+      if (!envNonIsolatedModules[envName]) {
+        envNonIsolatedModules[envName] = {};
+      }
+
+      envNonIsolatedModules[envName][modulePath] = localModule;
     }
 
     return localModule.exports;

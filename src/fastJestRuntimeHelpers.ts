@@ -71,3 +71,6 @@ export const findSiblingsWithFileExtension = (
 
   return '';
 };
+
+// jest.spyOn might need to be here tooo...
+export const RUN_ISOLATION_MATCHES = ['jest.mock(', '@fast-jest-ignore'];
