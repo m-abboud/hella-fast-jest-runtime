@@ -36,6 +36,7 @@ Note you won't see quite as dramatic gains all of the time because of the normal
 - The current version is for jest 29.7.0, slight chance it might work with older versions too though. (I've previously written a version for 24.X, if you want it DM me somewhere)
 - This does not attempt to fix memory issues (it probably even makes that problem worse), if you want a slower runner but one that addresses memory issues check out this one: https://github.com/goloveychuk/fastest-jest-runner 
 - If you're doing just node you might want to look at this guy: https://github.com/nicolo-ribaudo/jest-light-runner it has some unsupported jest features however.
+- for multi project workspaces todo feature of making a new env/module cache per project which would probably be helpful
 
 ## Usage
 `npm i @m-abboud/hella-fast-jest-runtime --save-dev`

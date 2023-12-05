@@ -1,6 +1,6 @@
 {
   "name": "@m-abboud/hella-fast-jest-runtime",
-  "version": "29.7.0",
+  "version": "29.7.1",
   "description": "Non isolated jest runtime that sometimes goes very fast",
   "main": "build/index.js",
   "typings": "build/index.d.ts",

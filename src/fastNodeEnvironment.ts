@@ -105,7 +105,7 @@ export default class FastNodeEnvironment implements JestEnvironment<Timer> {
     if (cachedContext) {
       this.context = cachedContext;
     } else {
-      this.context = createContext();
+      cachedContext = this.context = createContext();
     }
 
     let global;
