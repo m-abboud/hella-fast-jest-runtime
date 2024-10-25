@@ -4,6 +4,10 @@
   "description": "Non isolated jest runtime that sometimes goes very fast",
   "main": "build/index.js",
   "typings": "build/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/m-abboud/hella-fast-jest-runtime.git"
+  },
   "scripts": {
     "build": "run-s clean && run-p build:main",
     "build:main": "tsc -p tsconfig.deploy.json",
