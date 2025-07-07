@@ -1,3 +1,6 @@
+# Update/ Possible Archival
+You are likely better of using vitest if you can which I think supports what this project was doing for jest by not isolating the test suites.
+
 # Hella fast jest runtime
 This is a jest runtime that doesn't isolate test suites to increase speed dramatically in many situations (up to 8x in ours). I wrote the original version of this around 4 years ago for the startup I worked at and we saw very large performance improvements for one of our frontend apps that was quite slow especially on the old intel MacBooks. Over those 4 years there was never any weird issues that cropped up from doing this at least on our large frontend app it was used for and it seemed fairly stable. 
 
